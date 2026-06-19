@@ -52,10 +52,8 @@ $('mode').onchange=names;names();function start(){
   log('Game started. Dealer is '+S.players[S.dealer].name+'.');
   renderAll();
 }
-$('startBtn').onclick=start;function slots(){return S.players.length==2?6:S.players.length==3?7:8}function order(){let a=[],st=nxt(S.dealer);for(let k=0;k<S.players.length;k++)a.push((st+k)%S.players.length);return a.concat([...a].reverse())}function beginRound(){S.deck=deck();S.table=[];S.event=null;S.starter=null;S.crownChoices=[];S.crib=[];S.pegCount=0;S.pegPlayed=[];S.pegSegment=[];S.pendingPeg=null;S.lastPegger=null;S.lastCardAwarded=false;S.goPassed=[];S.taxPool=[];S.taxCounts={};S.taxReturned={};S.shameIndex=0;S.shameReveal=null;rotChoices={};S.players.forEach(p=>{p.hand=[];p.played=[]});for(let c=0;c<3;c++)for(let p of S.players)p.hand.push(S.deck.pop());S.tableSlots=slots();for(let i=0;i<S.tableSlots;i++)S.table.push(S.deck.pop());S.draftOrder=order();S.draftIndex=0;S.phase='roll';log('Dealt 3 private cards and set the Knight’s Table. Roll the Event Die.');renderAll()}$('newRoundBtn').onclick=beginRound;function roll(){if(S.phase!='roll')return;S.event=1+Math.floor(Math.random()*6);S.phase='draft';log(`Event Die rolled: ${S.event} ${EVENTS[S.event].name}.`);renderAll();setTimeout(cpuDraft,250)}$('rollDieBtn').onclick=roll;function draft(pi,ti){if(S.phase!='draft'||S.draftOrder[S.draftIndex]!=pi||!S.table[ti])return;S.players[pi].hand.push(S.table[ti]);S.table[ti]=null;log(`${S.players[pi].name} drafted slot ${ti+1}.`);S.draftIndex++;if(S.draftIndex>=S.draftOrder.length)afterDraft();renderAll();setTimeout(cpuDraft,250)}function cpuDraft(){while(S.phase=='draft'&&isCPU(S.draftOrder[S.draftIndex])){let av=S.table.map((c,i)=>c?i:null).filter(x=>x!==null);if(!av.length)break;draft(S.draftOrder[S.draftIndex],av[Math.floor(Math.random()*av.length)])}if(S.phase=='decree')setTimeout(resolveDecree,200)}function afterDraft(){let leftovers=S.table.filter(Boolean);if(leftovers.length){S.crib.push(...leftovers);S.table=S.table.map(()=>null);log(leftovers.length+' leftover Knight’s Table card(s) went to the crib.')}if(S.event>=4){S.phase='decree';log('Draft complete. Resolve Royal Decree after drafting cards.')}else{S.phase='discard';log('Draft complete. Discard 1 card to the crib.');setTimeout(cpuDiscard,250)}}function lowIdx(h){let b=0,v=99;h.forEach((c,i)=>{let x=c.r=='K'?99:val(c.r);if(x<v){v=x;b=i}});return b}
-function shameBackCard(victim,ci){
-  return `<div class="card back selectable" role="button" tabindex="0" onclick="chooseShame(${victim},${ci})" onkeydown="if(event.key==='Enter'||event.key===' '){chooseShame(${victim},${ci})}">♛</div>`;
-}
+$('startBtn').onclick=start;function slots(){return S.players.length==2?6:S.players.length==3?7:8}function order(){let a=[],st=nxt(S.dealer);for(let k=0;k<S.players.length;k++)a.push((st+k)%S.players.length);return a.concat([...a].reverse())}function beginRound(){S.deck=deck();S.table=[];S.event=null;S.starter=null;S.crownChoices=[];S.crib=[];S.pegCount=0;S.pegPlayed=[];S.pegSegment=[];S.pendingPeg=null;S.lastPegger=null;S.lastCardAwarded=false;S.goPassed=[];S.taxPool=[];S.taxCounts={};S.taxReturned={};S.shameIndex=0;S.shameReveal=null;S.shameProcessing=false;S.shameReveal=null;rotChoices={};S.players.forEach(p=>{p.hand=[];p.played=[]});for(let c=0;c<3;c++)for(let p of S.players)p.hand.push(S.deck.pop());S.tableSlots=slots();for(let i=0;i<S.tableSlots;i++)S.table.push(S.deck.pop());S.draftOrder=order();S.draftIndex=0;S.phase='roll';log('Dealt 3 private cards and set the Knight’s Table. Roll the Event Die.');renderAll()}$('newRoundBtn').onclick=beginRound;function roll(){if(S.phase!='roll')return;S.event=1+Math.floor(Math.random()*6);S.phase='draft';log(`Event Die rolled: ${S.event} ${EVENTS[S.event].name}.`);renderAll();setTimeout(cpuDraft,250)}$('rollDieBtn').onclick=roll;function draft(pi,ti){if(S.phase!='draft'||S.draftOrder[S.draftIndex]!=pi||!S.table[ti])return;S.players[pi].hand.push(S.table[ti]);S.table[ti]=null;log(`${S.players[pi].name} drafted slot ${ti+1}.`);S.draftIndex++;if(S.draftIndex>=S.draftOrder.length)afterDraft();renderAll();setTimeout(cpuDraft,250)}function cpuDraft(){while(S.phase=='draft'&&isCPU(S.draftOrder[S.draftIndex])){let av=S.table.map((c,i)=>c?i:null).filter(x=>x!==null);if(!av.length)break;draft(S.draftOrder[S.draftIndex],av[Math.floor(Math.random()*av.length)])}if(S.phase=='decree')setTimeout(resolveDecree,200)}function afterDraft(){let leftovers=S.table.filter(Boolean);if(leftovers.length){S.crib.push(...leftovers);S.table=S.table.map(()=>null);log(leftovers.length+' leftover Knight’s Table card(s) went to the crib.')}if(S.event>=4){S.phase='decree';log('Draft complete. Resolve Royal Decree after drafting cards.')}else{S.phase='discard';log('Draft complete. Discard 1 card to the crib.');setTimeout(cpuDiscard,250)}}function lowIdx(h){let b=0,v=99;h.forEach((c,i)=>{let x=c.r=='K'?99:val(c.r);if(x<v){v=x;b=i}});return b}
+function shameBackCard(victim,ci){return `<button type="button" class="card back selectable" onclick="chooseShame(${victim},${ci})">♛</button>`;}
 function chooseCard(pi,ci,ctx){
  if(ctx=='discard')discard(pi,ci);
  else if(ctx=='rot'){rotChoices[pi]=ci;log(S.players[pi].name+' chose a card for Regal Rotation.');resolveDecree()}
@@ -74,20 +72,14 @@ function chooseTax(pi,ci){
  resolveDecree();renderAll();
 }
 function chooseShame(victim,ci){
- if(S.phase!='decree'||S.event!=6)return;
- if(S.shameReveal)return;
+ if(S.phase!='decree'||S.event!=6||S.shameReveal||S.shameProcessing)return;
  let chooser=nxt(victim);
  if(isCPU(chooser)&&!S.mode.includes('local'))return;
  let killed=resolveOneShame(victim,ci);
  if(!killed){alert('No card was selected. Try again.');return}
- S.shameReveal={victim:victim,chooser:chooser,card:killed};
+ S.shameReveal={victim:victim,chooser:chooser,card:killed,cpu:false};
  renderAll();
- setTimeout(()=>{
-   S.shameReveal=null;
-   S.shameIndex++;
-   resolveDecree();
-   renderAll();
- },1100);
+ setTimeout(()=>{S.shameReveal=null;S.shameIndex++;processShameStep();},1100);
 }function discard(pi,ci){if(S.phase!='discard'||isCPU(pi))return;S.crib.push(S.players[pi].hand.splice(ci,1)[0]);log(S.players[pi].name+' discarded to crib.');renderAll();setTimeout(cpuDiscard,250);if(allDiscarded())afterDiscard()}function cpuDiscard(){if(S.phase!='discard')return;for(let i=0;i<S.players.length;i++)if(isCPU(i)&&S.players[i].hand.length>4){S.crib.push(S.players[i].hand.splice(lowIdx(S.players[i].hand),1)[0]);log(S.players[i].name+' discarded to crib.')}renderAll();if(allDiscarded())afterDiscard()}function allDiscarded(){return S.players.every(p=>p.hand.length==4)}
 function allTaxReady(){return S.players.every((p,i)=>(S.taxCounts&&S.taxCounts[i]||0)>=2)}
 function cpuTaxChoices(){
@@ -124,22 +116,34 @@ function resolveOneShame(victim,idx){
  S.deck.unshift(c);
  let replacement=S.deck.pop();
  p.hand.push(replacement);
- log("Public Shame: "+S.players[chooser].name+" chose a face-down card and revealed "+S.players[victim].name+"'s "+cs(c)+". It was killed and replaced face down.");
+ log("Public Shame: "+S.players[chooser].name+" revealed and killed "+S.players[victim].name+"'s "+cs(c)+". Replacement dealt face down.");
  return c;
 }
-function continueShame(){
+function processShameStep(){
+ if(S.phase!='decree'||S.event!=6)return;
  if(S.shameIndex===undefined)S.shameIndex=0;
- while(S.shameIndex<S.players.length){
-  let victim=S.shameIndex, chooser=nxt(victim);
-  if(!isCPU(chooser)||S.mode.includes('local')){renderAll();return}
-  resolveOneShame(victim,null);S.shameIndex++;
+ if(S.shameIndex>=S.players.length){
+   S.shameIndex=0;S.shameReveal=null;S.shameProcessing=false;
+   log('Public Shame resolved. Continue to crib discard.');
+   S.phase='discard';renderAll();setTimeout(cpuDiscard,250);return;
  }
- S.shameIndex=0;log('Public Shame resolved. Continue to crib discard.');S.phase='discard';renderAll();setTimeout(cpuDiscard,250);
+ let victim=S.shameIndex, chooser=nxt(victim);
+ if(!isCPU(chooser)||S.mode.includes('local')){S.shameProcessing=false;renderAll();return}
+ if(S.shameProcessing)return;
+ S.shameProcessing=true;
+ renderAll();
+ setTimeout(()=>{
+   let killed=resolveOneShame(victim,null);
+   S.shameReveal={victim:victim,chooser:chooser,card:killed,cpu:true};
+   renderAll();
+   setTimeout(()=>{S.shameReveal=null;S.shameIndex++;S.shameProcessing=false;processShameStep();},900);
+ },450);
 }
+function continueShame(){processShameStep();}
 function resolveDecree(){
  if(S.phase!='decree')return;
  if(S.event==4){
-  for(let i=0;i<S.players.length;i++)if(isCPU(i)&&!S.mode.includes('local')&&rotChoices[i]===undefined)rotChoices[i]=lowIdx(S.players[i].hand);
+  for(let i=0;i<S.players.length;i++)if(isCPU(i)&&!S.mode.includes('local')&&rotChoices[i]===undefined)rotChoices[i]=aiPassIndex(S.players[i].hand,nxt(i));
   if(S.players.some((p,i)=>(!isCPU(i)||S.mode.includes('local'))&&rotChoices[i]===undefined)){renderAll();return}
   let pass=S.players.map((p,i)=>p.hand.splice(rotChoices[i],1)[0]);
   for(let i=0;i<S.players.length;i++)S.players[nxt(i)].hand.push(pass[i]);
@@ -150,9 +154,9 @@ function resolveDecree(){
   if(!allTaxReady()){renderAll();return}
   finishTax();
  }else if(S.event==6){
-  continueShame();
+  processShameStep();
  }
-}function ensureCrib(){while(S.crib.length<4&&S.deck.length){S.crib.push(S.deck.pop());log('Crib filled from deck to maintain 4 crib cards before Starter.')}if(S.crib.length>4){log('Crib has '+S.crib.length+' cards before Starter; check public discard settings.')}}function afterDiscard(){if(S.phase!='discard')return;ensureCrib();if(S.event>=4){S.phase='crowncut';setupCrown()}else{S.starter=S.deck.pop();log('Starter Card revealed: '+cs(S.starter)+'.');S.phase='pegging';setupPeg()}renderAll()}function setupCrown(){S.crownChoices=[];while(S.crownChoices.length<2){let c=S.deck.pop();if(c.r=='K')S.deck.unshift(c);else S.crownChoices.push(c)}log('Crown Cut: choose 1 of 2 non-King cards.');if(isCPU(S.dealer))setTimeout(()=>chooseCrown(Math.floor(Math.random()*2)),500)}function chooseCrown(i){if(S.phase!='crowncut')return;S.starter=S.crownChoices[i];let other=S.crownChoices[1-i];if(other)S.deck.unshift(other);S.crownChoices=[];log('Crown Cut chosen: '+cs(S.starter)+'.');S.phase='pegging';setupPeg();renderAll()}function setupPeg(){S.currentPlayer=nxt(S.dealer);S.players.forEach(p=>p.played=[]);S.pegCount=0;S.pegPlayed=[];S.pegSegment=[];S.pendingPeg=null;S.lastPegger=null;S.lastCardAwarded=false;S.goPassed=[];S.taxPool=[];S.taxCounts={};S.taxReturned={};S.shameIndex=0;S.shameReveal=null;log('Pegging begins. '+S.players[S.currentPlayer].name+' plays first.')}
+}function ensureCrib(){while(S.crib.length<4&&S.deck.length){S.crib.push(S.deck.pop());log('Crib filled from deck to maintain 4 crib cards before Starter.')}if(S.crib.length>4){log('Crib has '+S.crib.length+' cards before Starter; check public discard settings.')}}function afterDiscard(){if(S.phase!='discard')return;ensureCrib();if(S.event>=4){S.phase='crowncut';setupCrown()}else{S.starter=S.deck.pop();log('Starter Card revealed: '+cs(S.starter)+'.');S.phase='pegging';setupPeg()}renderAll()}function setupCrown(){S.crownChoices=[];while(S.crownChoices.length<2){let c=S.deck.pop();if(c.r=='K')S.deck.unshift(c);else S.crownChoices.push(c)}log('Crown Cut: choose 1 of 2 non-King cards.');if(isCPU(S.dealer))setTimeout(()=>chooseCrown(Math.floor(Math.random()*2)),500)}function chooseCrown(i){if(S.phase!='crowncut')return;S.starter=S.crownChoices[i];let other=S.crownChoices[1-i];if(other)S.deck.unshift(other);S.crownChoices=[];log('Crown Cut chosen: '+cs(S.starter)+'.');S.phase='pegging';setupPeg();renderAll()}function setupPeg(){S.currentPlayer=nxt(S.dealer);S.players.forEach(p=>p.played=[]);S.pegCount=0;S.pegPlayed=[];S.pegSegment=[];S.pendingPeg=null;S.lastPegger=null;S.lastCardAwarded=false;S.goPassed=[];S.taxPool=[];S.taxCounts={};S.taxReturned={};S.shameIndex=0;S.shameReveal=null;S.shameProcessing=false;S.shameReveal=null;log('Pegging begins. '+S.players[S.currentPlayer].name+' plays first.')}
 function scoreRunValue(n){if(S.event==1){return {3:4,4:6,5:8,6:10,7:12}[n]||n}return n}
 function pegProposal(player,card){
  let pts=0, parts=[];
@@ -226,18 +230,20 @@ function finishPeg(){if(S.pendingPeg){alert('Confirm or reject the proposed pegg
  let decreePrompt='';
  if(S.phase=='decree'&&S.event==4)decreePrompt='<div class="warn"><b>Regal Rotation:</b> choose 1 card from your hand to pass left.</div>';
  if(S.phase=='decree'&&S.event==5)decreePrompt='<div class="warn"><b>Kingdom Tax:</b> choose 2 cards from your hand for the shared pool. You will see the 2 cards you receive back.</div>';
- if(S.phase=='decree'&&S.event==6)decreePrompt='<div class="warn"><b>Public Shame:</b> choose one random face-down card from the victim. You will only see what it was after you kill it. The replacement stays hidden.</div>';if(S.shameReveal&&S.shameReveal.card)decreePrompt+='<div class="pendingBox"><h3>Revealed Card</h3><p>You revealed '+S.players[S.shameReveal.victim].name+'\'s <b>'+cs(S.shameReveal.card)+'</b>. It is killed and replaced face down.</p><button onclick="S.shameReveal=null;S.shameIndex++;resolveDecree();renderAll();">Continue</button></div>';
+ if(S.phase=='decree'&&S.event==6)decreePrompt='<div class="warn"><b>Public Shame:</b> each player’s left opponent kills one face-down card. If CPU is chooser, it chooses automatically. If you are chooser, tap one face-down card.</div>';
+ if(S.shameReveal&&S.shameReveal.card){
+   let who=(S.shameReveal.cpu?'CPU revealed ':'You revealed ')+S.players[S.shameReveal.victim].name+"'s ";
+   decreePrompt+=`<div class="pendingBox"><h3>Revealed Card</h3><p>${who}<b>${cs(S.shameReveal.card)}</b>. It is killed and replaced face down.</p></div>`;
+ }
  $('handsList').innerHTML=decreePrompt+S.players.map((p,i)=>{
   let activeShame=(S.phase=='decree'&&S.event==6&&S.shameIndex===i);
   let chooser=activeShame?nxt(i):null;
-  let canChooseShame=activeShame&&(!isCPU(chooser)||S.mode.includes('local'));
+  let canChooseShame=activeShame&&(!isCPU(chooser)||S.mode.includes('local'))&&!S.shameReveal&&!S.shameProcessing;
   let hide=p.cpu&&!reveal&&S.phase!='pegging',peghide=p.cpu&&S.phase=='pegging';
-
   let cards='';
   if(canChooseShame){
-    // Public Shame is face-down selection. Do not show the card ranks before the kill.
     cards=p.hand.map((c,ci)=>shameBackCard(i,ci)).join('');
-  }else if(hide||peghide){
+  }else if(hide||peghide || activeShame){
     cards=p.hand.map(()=>htmlCard(null,{back:true})).join('');
   }else{
     cards=p.hand.map((c,ci)=>{
@@ -249,14 +255,14 @@ function finishPeg(){if(S.pendingPeg){alert('Confirm or reject the proposed pegg
       return htmlCard(c,{sel,data:sel?`data-card="${i}:${ci}:${ctx}"`:''})
     }).join('');
   }
-
   let extra='';
   if(S.phase=='decree'&&S.event==5)extra='<p class="sub">Tax pool: '+((S.taxCounts&&S.taxCounts[i])||0)+'/2 chosen</p>';
-  if(S.phase=='decree'&&S.event==6&&activeShame)extra='<p class="sub">Public Shame victim. Chooser: '+S.players[chooser].name+'. Pick a face-down card to kill.</p>';
+  if(S.phase=='decree'&&S.event==6&&activeShame)extra='<p class="sub">Public Shame victim. Chooser: '+S.players[chooser].name+(isCPU(chooser)&&!S.mode.includes('local')?' (CPU choosing automatically)':' — tap one face-down card')+'</p>';
   return`<div class="handBox"><h3>${p.name} ${S.dealer==i?'(Dealer)':''}</h3>${extra}<div class="cardrow">${cards}</div></div>`
  }).join('');
  document.querySelectorAll('[data-card]').forEach(el=>el.onclick=()=>{let [pi,ci,ctx]=el.dataset.card.split(':');chooseCard(+pi,+ci,ctx)})
-}function renderCrown(){$('crownCutChoices').innerHTML=S.crownChoices.map((c,i)=>htmlCard(c,{sel:!isCPU(S.dealer),data:`data-crown="${i}"`})).join('');document.querySelectorAll('[data-crown]').forEach(el=>el.onclick=()=>chooseCrown(+el.dataset.crown))}function renderStarter(){$('starterBox').innerHTML=S.starter?htmlCard(S.starter):''}function renderPeg(){$('pegCount').textContent=S.pegCount;$('pegTurnBox').innerHTML='<b>Turn:</b> '+(S.players[S.currentPlayer]?.name||'');$('pegPlayed').innerHTML=S.pegPlayed.slice(-16).map(x=>htmlCard(x.card,{small:true})+`<span class="sub">${S.players[x.player].name}</span>`).join('');let sel=$('pegScorePlayer');if(sel){sel.innerHTML=S.players.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');sel.value=S.currentPlayer}let pb=$('pendingPegBox');if(pb){if(S.pendingPeg){let p=S.pendingPeg;pb.classList.remove('hidden');pb.innerHTML=`<h3>Confirm Pegging Score</h3><p><b>${S.players[p.player].name}</b> scored <b>+${p.points}</b> for ${p.reason}.</p><div class="row"><button onclick="confirmPegScore(true)">Apply +${p.points}</button><button class="secondary" onclick="confirmPegScore(false)">Reject / No Score</button></div><div class="manualScore"><input id="pegOverrideAmount" type="number" placeholder="Override points"><button onclick="confirmPegScore('override')">Apply Override</button></div>`}else{pb.classList.add('hidden');pb.innerHTML=''}}if(S.phase=='pegging')setTimeout(cpuPeg,200)}function renderScoring(){if(S.phase!='scoring')return;let t=S.scoringQueue[S.scoringIndex],name=t=='crib'?`${S.players[S.dealer].name}'s Crib`:S.players[t].name,cards=t=='crib'?S.crib:S.players[t].hand;$('scorePrompt').innerHTML=`<b>Now scoring:</b> ${name}. Starter: ${cs(S.starter)}.${t=='crib'?' Crib has '+S.crib.length+' cards plus starter = '+(S.crib.length+1)+'. Crib flush requires all 5 cards to match.':' Hand may score 4-card flush for 4 or 5-card flush for 5.'}`;$('scoreHandView').innerHTML='<div class="cardrow">'+cards.map(c=>htmlCard(c)).join('')+htmlCard(S.starter)+'</div>';qButtons()}function renderLog(){$('log').innerHTML=S.log.map(x=>`<p>${x}</p>`).join('')||'<p>No log yet.</p>'}
+}
+function renderCrown(){$('crownCutChoices').innerHTML=S.crownChoices.map((c,i)=>htmlCard(c,{sel:!isCPU(S.dealer),data:`data-crown="${i}"`})).join('');document.querySelectorAll('[data-crown]').forEach(el=>el.onclick=()=>chooseCrown(+el.dataset.crown))}function renderStarter(){$('starterBox').innerHTML=S.starter?htmlCard(S.starter):''}function renderPeg(){$('pegCount').textContent=S.pegCount;$('pegTurnBox').innerHTML='<b>Turn:</b> '+(S.players[S.currentPlayer]?.name||'');$('pegPlayed').innerHTML=S.pegPlayed.slice(-16).map(x=>htmlCard(x.card,{small:true})+`<span class="sub">${S.players[x.player].name}</span>`).join('');let sel=$('pegScorePlayer');if(sel){sel.innerHTML=S.players.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');sel.value=S.currentPlayer}let pb=$('pendingPegBox');if(pb){if(S.pendingPeg){let p=S.pendingPeg;pb.classList.remove('hidden');pb.innerHTML=`<h3>Confirm Pegging Score</h3><p><b>${S.players[p.player].name}</b> scored <b>+${p.points}</b> for ${p.reason}.</p><div class="row"><button onclick="confirmPegScore(true)">Apply +${p.points}</button><button class="secondary" onclick="confirmPegScore(false)">Reject / No Score</button></div><div class="manualScore"><input id="pegOverrideAmount" type="number" placeholder="Override points"><button onclick="confirmPegScore('override')">Apply Override</button></div>`}else{pb.classList.add('hidden');pb.innerHTML=''}}if(S.phase=='pegging')setTimeout(cpuPeg,200)}function renderScoring(){if(S.phase!='scoring')return;let t=S.scoringQueue[S.scoringIndex],name=t=='crib'?`${S.players[S.dealer].name}'s Crib`:S.players[t].name,cards=t=='crib'?S.crib:S.players[t].hand;$('scorePrompt').innerHTML=`<b>Now scoring:</b> ${name}. Starter: ${cs(S.starter)}.${t=='crib'?' Crib has '+S.crib.length+' cards plus starter = '+(S.crib.length+1)+'. Crib flush requires all 5 cards to match.':' Hand may score 4-card flush for 4 or 5-card flush for 5.'}`;$('scoreHandView').innerHTML='<div class="cardrow">'+cards.map(c=>htmlCard(c)).join('')+htmlCard(S.starter)+'</div>';qButtons()}function renderLog(){$('log').innerHTML=S.log.map(x=>`<p>${x}</p>`).join('')||'<p>No log yet.</p>'}
 
 function randomDealerFromSetup(){
   let n=count($('mode').value), pick=Math.floor(Math.random()*n);
