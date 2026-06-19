@@ -72,15 +72,20 @@ function chooseTax(pi,ci){
  resolveDecree();renderAll();
 }
 function chooseShame(victim,ci){
- if(S.phase!='decree'||S.event!=6||S.shameReveal||S.shameProcessing)return;
+ if(S.phase!='decree'||S.event!=6||S.shameReveal)return;
  let chooser=nxt(victim);
  if(isCPU(chooser)&&!S.mode.includes('local'))return;
  let killed=resolveOneShame(victim,ci);
  if(!killed){alert('No card was selected. Try again.');return}
  S.shameReveal={victim:victim,chooser:chooser,card:killed,cpu:false};
  renderAll();
- setTimeout(()=>{S.shameReveal=null;S.shameIndex++;processShameStep();},1100);
-}function discard(pi,ci){if(S.phase!='discard'||isCPU(pi))return;S.crib.push(S.players[pi].hand.splice(ci,1)[0]);log(S.players[pi].name+' discarded to crib.');renderAll();setTimeout(cpuDiscard,250);if(allDiscarded())afterDiscard()}function cpuDiscard(){if(S.phase!='discard')return;for(let i=0;i<S.players.length;i++)if(isCPU(i)&&S.players[i].hand.length>4){S.crib.push(S.players[i].hand.splice(lowIdx(S.players[i].hand),1)[0]);log(S.players[i].name+' discarded to crib.')}renderAll();if(allDiscarded())afterDiscard()}function allDiscarded(){return S.players.every(p=>p.hand.length==4)}
+ setTimeout(()=>{
+   S.shameReveal=null;
+   S.shameIndex++;
+   processShameStep();
+ },1100);
+}
+function discard(pi,ci){if(S.phase!='discard'||isCPU(pi))return;S.crib.push(S.players[pi].hand.splice(ci,1)[0]);log(S.players[pi].name+' discarded to crib.');renderAll();setTimeout(cpuDiscard,250);if(allDiscarded())afterDiscard()}function cpuDiscard(){if(S.phase!='discard')return;for(let i=0;i<S.players.length;i++)if(isCPU(i)&&S.players[i].hand.length>4){S.crib.push(S.players[i].hand.splice(lowIdx(S.players[i].hand),1)[0]);log(S.players[i].name+' discarded to crib.')}renderAll();if(allDiscarded())afterDiscard()}function allDiscarded(){return S.players.every(p=>p.hand.length==4)}
 function allTaxReady(){return S.players.every((p,i)=>(S.taxCounts&&S.taxCounts[i]||0)>=2)}
 function cpuTaxChoices(){
  if(S.event!=5||S.phase!='decree')return;
@@ -122,22 +127,31 @@ function resolveOneShame(victim,idx){
 function processShameStep(){
  if(S.phase!='decree'||S.event!=6)return;
  if(S.shameIndex===undefined)S.shameIndex=0;
- if(S.shameIndex>=S.players.length){
-   S.shameIndex=0;S.shameReveal=null;S.shameProcessing=false;
-   log('Public Shame resolved. Continue to crib discard.');
-   S.phase='discard';renderAll();setTimeout(cpuDiscard,250);return;
- }
- let victim=S.shameIndex, chooser=nxt(victim);
- if(!isCPU(chooser)||S.mode.includes('local')){S.shameProcessing=false;renderAll();return}
- if(S.shameProcessing)return;
- S.shameProcessing=true;
- renderAll();
- setTimeout(()=>{
-   let killed=resolveOneShame(victim,null);
-   S.shameReveal={victim:victim,chooser:chooser,card:killed,cpu:true};
+ S.shameProcessing=false;
+
+ while(S.shameIndex<S.players.length){
+   let victim=S.shameIndex, chooser=nxt(victim);
+
+   // CPU chooser resolves immediately. No waiting screen or frozen face-down hand.
+   if(isCPU(chooser)&&!S.mode.includes('local')){
+     let killed=resolveOneShame(victim,null);
+     if(killed)log('CPU Public Shame resolved: '+S.players[chooser].name+' killed '+S.players[victim].name+"'s "+cs(killed)+'.');
+     S.shameIndex++;
+     continue;
+   }
+
+   // Human chooser: pause here and let the player tap a face-down card.
    renderAll();
-   setTimeout(()=>{S.shameReveal=null;S.shameIndex++;S.shameProcessing=false;processShameStep();},900);
- },450);
+   return;
+ }
+
+ S.shameIndex=0;
+ S.shameReveal=null;
+ S.shameProcessing=false;
+ log('Public Shame resolved. Continue to crib discard.');
+ S.phase='discard';
+ renderAll();
+ setTimeout(cpuDiscard,250);
 }
 function continueShame(){processShameStep();}
 function resolveDecree(){
@@ -230,7 +244,7 @@ function finishPeg(){if(S.pendingPeg){alert('Confirm or reject the proposed pegg
  let decreePrompt='';
  if(S.phase=='decree'&&S.event==4)decreePrompt='<div class="warn"><b>Regal Rotation:</b> choose 1 card from your hand to pass left.</div>';
  if(S.phase=='decree'&&S.event==5)decreePrompt='<div class="warn"><b>Kingdom Tax:</b> choose 2 cards from your hand for the shared pool. You will see the 2 cards you receive back.</div>';
- if(S.phase=='decree'&&S.event==6)decreePrompt='<div class="warn"><b>Public Shame:</b> each player’s left opponent kills one face-down card. If CPU is chooser, it chooses automatically. If you are chooser, tap one face-down card.</div>';
+ if(S.phase=='decree'&&S.event==6)decreePrompt='<div class="warn"><b>Public Shame:</b> CPU choices resolve automatically. When it is your turn to choose, tap one face-down card from the victim.</div>';
  if(S.shameReveal&&S.shameReveal.card){
    let who=(S.shameReveal.cpu?'CPU revealed ':'You revealed ')+S.players[S.shameReveal.victim].name+"'s ";
    decreePrompt+=`<div class="pendingBox"><h3>Revealed Card</h3><p>${who}<b>${cs(S.shameReveal.card)}</b>. It is killed and replaced face down.</p></div>`;
@@ -238,12 +252,15 @@ function finishPeg(){if(S.pendingPeg){alert('Confirm or reject the proposed pegg
  $('handsList').innerHTML=decreePrompt+S.players.map((p,i)=>{
   let activeShame=(S.phase=='decree'&&S.event==6&&S.shameIndex===i);
   let chooser=activeShame?nxt(i):null;
-  let canChooseShame=activeShame&&(!isCPU(chooser)||S.mode.includes('local'))&&!S.shameReveal&&!S.shameProcessing;
-  let hide=p.cpu&&!reveal&&S.phase!='pegging',peghide=p.cpu&&S.phase=='pegging';
+  let humanChooser=activeShame&&(!isCPU(chooser)||S.mode.includes('local'))&&!S.shameReveal;
+  let hide=p.cpu&&!reveal&&S.phase!='pegging';
+  let peghide=p.cpu&&S.phase=='pegging';
   let cards='';
-  if(canChooseShame){
+
+  if(humanChooser){
+    // Public Shame selection is always face-down.
     cards=p.hand.map((c,ci)=>shameBackCard(i,ci)).join('');
-  }else if(hide||peghide || activeShame){
+  }else if(hide||peghide){
     cards=p.hand.map(()=>htmlCard(null,{back:true})).join('');
   }else{
     cards=p.hand.map((c,ci)=>{
@@ -255,10 +272,13 @@ function finishPeg(){if(S.pendingPeg){alert('Confirm or reject the proposed pegg
       return htmlCard(c,{sel,data:sel?`data-card="${i}:${ci}:${ctx}"`:''})
     }).join('');
   }
+
   let extra='';
   if(S.phase=='decree'&&S.event==5)extra='<p class="sub">Tax pool: '+((S.taxCounts&&S.taxCounts[i])||0)+'/2 chosen</p>';
-  if(S.phase=='decree'&&S.event==6&&activeShame)extra='<p class="sub">Public Shame victim. Chooser: '+S.players[chooser].name+(isCPU(chooser)&&!S.mode.includes('local')?' (CPU choosing automatically)':' — tap one face-down card')+'</p>';
-  return`<div class="handBox"><h3>${p.name} ${S.dealer==i?'(Dealer)':''}</h3>${extra}<div class="cardrow">${cards}</div></div>`
+  if(S.phase=='decree'&&S.event==6&&activeShame){
+    extra='<p class="sub">Public Shame victim. Chooser: '+S.players[chooser].name+(humanChooser?' — tap one face-down card':' (CPU resolves automatically)')+'</p>';
+  }
+  return`<div class="handBox"><h3>${p.name} ${S.dealer==i?'(Dealer)':''}</h3>${extra}<div class="cardrow">${cards}</div></div>`;
  }).join('');
  document.querySelectorAll('[data-card]').forEach(el=>el.onclick=()=>{let [pi,ci,ctx]=el.dataset.card.split(':');chooseCard(+pi,+ci,ctx)})
 }
